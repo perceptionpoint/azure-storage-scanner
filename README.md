@@ -7,9 +7,9 @@ Requirements:
 
  Installation:
  - Clone repo and open it with VS code (or send a zip to the customer).
- - Modify function.js line 9 "path" option and type in your container
- - Go to the Azure Extension, Login and go to "Application Settings" Add the following settings:
+ - Modify function.json line 9 "path" option and type your container name (bucket)
+ - Go to the Azure Extension, Login and go to "Application Settings" under your subscription. Add the following settings:
    * PP_TOKEN - token provided by Perception Point
    * PP_ENV - us-east-1 or eu-west-1 depending on where your customer account was originally created
-   * AZURE_STORAGE_CONNECTION_STRING - Storage Account access key connection string located in "Access keys" section of your Storage Account settings page.
+   * AZURE_STORAGE_CONNECTION_STRING - Storage Account connection string located in "Access keys" section of your Storage Account settings page.
  - Click "Deploy to Function App..." button
