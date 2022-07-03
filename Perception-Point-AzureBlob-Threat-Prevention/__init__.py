@@ -14,18 +14,14 @@ IGNORE_MIMETYPES = [m.strip().lower() for m in
                      os.environ.get('IGNORE_MIMETYPES', default="application/x-directory").split(',')]
 IGNORE_MIMETYPES = [m for m in IGNORE_MIMETYPES if m]
 
-SELECTED_LOG_LEVEL = os.environ.get('LOG_LEVEL', 'info')
-LOG_LEVELS = {'info':logging.INFO,'warning': logging.WARNING, 'error': logging.ERROR, 'debug':logging.DEBUG}
-CURRENT_LOG_LEVEL = LOG_LEVELS.get(SELECTED_LOG_LEVEL, '')
-
 
 def logger(item_path=None):
         logPrefix = item_path if item_path else 'Unknown'
         logging.getLogger().handlers = []
         logger = logging.getLogger()
-        logger.setLevel(CURRENT_LOG_LEVEL)
+        logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler()
-        handler.setLevel(CURRENT_LOG_LEVEL)
+        handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter(f'"{logPrefix}"'+',%(levelname)s,%(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
@@ -38,10 +34,6 @@ def send_url_to_perception_point(url, item_path):
                 "download_link": url,
                 "name":os.path.basename(item_path),
                 "original_file_path": item_path,
-                "callback_params":json.dumps({
-                                              "azure_account_id":'?????',
-                                              "queue_region":'?????'
-                                   }),
                 "sub_origin": "s3"
     }
     log.debug('sending data to PP:{},{}'.format(str(post_data),ENV_URL_PREFIX))
@@ -51,22 +43,22 @@ def send_url_to_perception_point(url, item_path):
         headers={"Authorization": "Token {}".format(PP_TOKEN)},
     )
     if response.ok:
-        log.info("({}): {}".format(response.status_code, response.content))
+        log.debug("({}): {}".format(response.status_code, response.content))
     else:
-        log.error("URL: {} | response ({}): {}".format(url, response.status_code, response.content))
+        log.debug("URL: {} | response ({}): {}".format(url, response.status_code, response.content))
 
 
-def main(item: func.InputStream):
-    log = logger(item.name)
-    log.info('uri:{}\nname:{}\nproperties:{}\nmetadata:{}\n'.format(item.uri,item.name,item.blob_properties,item.metadata))
-    mimetype = item.blob_properties['ContentType']
-    item_path = item.name
+def main(event: func.InputStream):
+    log = logger(event.name)
+    log.debug('uri:{}\nname:{}\nproperties:{}\nmetadata:{}\n'.format(event.uri,event.name,event.blob_properties,event.metadata))
+    mimetype = event.blob_properties['ContentType']
+    item_path = event.name
 
     log.debug('File mimetype:{}'.format(mimetype))
     if mimetype and mimetype.lower() in IGNORE_MIMETYPES:
-        log.info("Skipped file with mimetype: {}".format(mimetype))
+        log.debug("Skipped file with mimetype: {}".format(mimetype))
         sys.exit()
-    if item.length == 0:
+    if event.length == 0:
         log.debug("Skipped empty object.")
         sys.exit()
 
@@ -79,8 +71,8 @@ def main(item: func.InputStream):
                                              permission="r",
                                              account_key=storageData['AccountKey']
                                             )
-    log.info('sastoken:{}'.format(sasToken))
+    log.debug('sastoken:{}'.format(sasToken))
 
     log.debug('Generating presigned URL for download {}'.format(item_path))
-    url = '{}?{}'.format(item.uri,sasToken)
+    url = '{}?{}'.format(event.uri,sasToken)
     send_url_to_perception_point(url, item_path)
